@@ -7,7 +7,7 @@ exclude_patterns: ["archive/*", "source/*", "release/*", "lectures/teacher*"]
 only_build_toc_files: true
 
 repository:
- url: https://github.ubc.ca/MDS-2024-25/DSCI_554_exper-causal-inf_students
+ url: https://github.com/meagangardner/MDS-Lecture-Notes-554-Experimentation-and-Causal-Inference
 
 latex:
   latex_documents:
