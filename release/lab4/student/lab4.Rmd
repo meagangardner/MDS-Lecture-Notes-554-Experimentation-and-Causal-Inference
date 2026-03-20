@@ -1,0 +1,583 @@
+---
+title: "DSCI 554 Lab 4"
+subtitle: Practicum of Causality Through an Observational Study
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+
+# Lab Overview
+
+In this last lab, you will practice investigating causality through an observational study.
+
+# Lab Mechanics
+
+rubric={mechanics:5}
+
+- Paste the URL to your GitHub repo here: **INSERT YOUR GITHUB REPO URL HERE**
+- Once you finish the assignment, you must **knit** this `R` markdown to create a `.pdf` file and push everything to your GitHub repo using `git push`. You are responsible for ensuring all the figures, texts, and equations in the `.pdf` file are appropriately rendered.
+- **You must submit the rendered `.pdf` file to Gradescope.**
+
+> **Heads-up:** You need to have a minimum of 3 commits.
+
+# Code Quality
+
+rubric={quality:3}
+
+The code that you write for this assignment will be given one overall grade for code quality. Check our [**code quality rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_quality.md) as a guide to what we are looking for. Also, for this course (and other MDS courses that use `R`), we are trying to follow the `tidyverse` code style. There is a guide you can refer too: <http://style.tidyverse.org/>
+
+Each code question will also be assessed for code accuracy (i.e., does it do what it is supposed to do?).
+
+# Writing
+
+rubric={writing:3}
+
+To get the marks for this writing component, you should:
+
+- Use proper English, spelling, and grammar throughout your submission (the non-coding parts).
+- Be succinct. **This means being specific about what you want to communicate, without being superfluous.**
+
+Check our [**writing rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_writing.md) as a guide to what we are looking for.
+
+# A Note on Challenging Questions
+
+Each lab will have a few challenging questions. These are usually low-risk questions and will contribute to maximum 5% of the lab grade. The main purpose here is to challenge yourself or dig deeper in a particular area. When you start working on labs, attempt all other questions before moving to these questions. If you are running out of time, please skip these questions.
+
+We will be more strict with the marking of these questions. If you want to get full points in these questions, your answers need to
+
+- be thorough, thoughtful, and well-written,
+- provide convincing justification and appropriate evidence for the claims you make, and
+- impress the reader of your lab with your understanding of the material, your analytical and critical reasoning skills, and your ability to think on your own.
+
+# Setup
+
+If you fail to load any packages, you can install them and try loading the library again.
+
+```{r load libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(tools)
+library(scales)
+library(broom)
+library(MASS)
+library(rmarkdown)
+```
+
+\newpage
+
+# Exercise 1: Conceptual Part
+
+## Q1.1. Odds, Odds Ratio, and Log-odds Ratio
+
+rubric={reasoning:6}
+
+In your own words, explain what is meant by odds, odds ratio, and log-odds ratio. Use a numeric real-life framework in your explanation. This framework has to connect the three concepts. Based on your numeric example, provide interpretations on these metrics.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q1.2. Creating a Research Question
+
+rubric={reasoning:6}
+
+Create a **single** research question you would be interested in answering via an observational study. Using this research question, describe how you would design three studies, each using the approaches listed below (**one or two sentences per approach**):
+
+- Cross-sectional (Contemporaneous).
+- Case-control (Retrospective).
+- Cohort (Prospective).
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q1.3. Design an Observational Study for Your Research Question
+
+rubric={reasoning:6}
+
+For your described research question above, which study design (out of the above three) would you choose (considering realistic study constraints for your example)? Justify your choice in three or four sentences.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 2: Analyze Causality in an Observational Study
+
+Let us retake the question from `lab3-ex4`:
+
+**Does a person’s self-rated enjoyment of the MDS program ($X$) had any causal influence on their expected salary upon graduation ($Y$)?**
+
+To answer this, a team ran a survey which included the following two questions to collect data to answer their question of interest ($Y$):
+
+**What is your salary expectation after graduation in CAD? (`salary_exp_post_grad`)** 
+
+- `Less than $60,000`
+- `$60,000 to $80,000`
+- `$80,001 to $100,000`
+- `$100,001 to $120,000`
+- `More than $120,000`
+
+The response above was subject to the following explanatory variable of interest ($X$):
+
+**What is your self rated enjoyment of MDS on a scale of `1` - `4`? With `4` being very happy with MDS and `1` being not happy at all with MDS. (`mds_self_rated_enjoy`)**
+
+- `1`
+- `2`
+- `3`
+- `4`
+  
+Moreover, the team also collected the answers on the following questions:
+
+**What was your previous salary prior to MDS? (`salary_pre_mds`)**
+
+- `Less than $60,000`
+- `$60,000 to $80,000`
+- `$80,001 to $100,000`
+- `$100,001 to $120,000`
+- `More than $120,000`
+  
+**How many years of professional work experience did you have prior to MDS? (`work_exp`)**
+
+- `0 - 1 Years`
+- `1 - 4 Years`
+- `4 - 7 Years`
+- `7 - 10 Years`
+- `10+ Years`
+
+**How confident in your data science skill set did you feel when first starting MDS on a scale of `1` - `4`?  With `4` being very confident and `1` being not confident (`ds_skill_confidence`).**
+
+- `1`
+- `2`
+- `3`
+- `4`
+
+**Do you typically do optional questions in labs? (`does_optional_qs`)**
+
+- `Yes`
+- `No`
+
+**Are you currently applying for data science jobs? (`currently_job_searching`)**
+
+- `Yes`
+- `No`
+
+**How would you rate your current happiness level on a scale of `1`-`4`?  With `4` being very happy and `1` being not happy (`baseline_happiness`).**
+
+- `1`
+- `2`
+- `3`
+- `4`
+ 
+**How often do you attend MDS career events? For example, the panel on technical interview questions (`freq_attend_mds_career_events`).**
+
+- `Not often`
+- `Sometimes`
+- `Often`
+
+The data was collected **in 2019 and 2020** via a survey with 65 and 49 respondents each (**raw sample sizes before data wrangling**). The *raw datasets* `salary_df_2019` and `salary_df_2020` are the following:
+
+```{r message=FALSE}
+# Run this code before proceeding.
+
+salary_df_2019 <- read_csv("data/salary_survey_responses_2019.csv", skip = 2) %>%
+  clean_names()
+
+salary_df_2020 <- read_csv("data/salary_survey_responses_2020.csv", skip = 2) %>%
+  clean_names()
+```
+
+## Data Wrangling
+
+The raw data needs some wrangling. Therefore, for both `salary_df_2019` and `salary_df_2020`, the below code does the following:
+
+- Select only those columns **containing** `qid` in the header.
+- Rename these columns as follows:
+  * `import_id_qid172807697` as `salary_exp_post_grad`
+  * `import_id_qid172807701_1` as `mds_self_rated_enjoy`
+  * `import_id_qid96` as `salary_pre_mds`
+  * `import_id_qid172807686` as `work_exp`
+  * `import_id_qid98_1` as `ds_skill_confidence`
+  * `import_id_qid172807685` as `does_optional_qs`
+  * `import_id_qid92` as `currently_job_searching`
+  * `import_id_qid99_1` as `baseline_happiness`
+  * `import_id_qid93` as `freq_attend_mds_career_events`
+- Create a column called `year` with the corresponding labels: `2019` or `2020`.
+- Drop all observations with missing data.
+
+Finally, we will merge `salary_df_2019` and `salary_df_2020` into a single data frame called `salary_df`.
+
+Run the code before proceeding:
+
+```{r}
+salary_df_2019 <- salary_df_2019 %>%
+  dplyr::select(contains("qid")) %>%
+  rename(
+    salary_exp_post_grad = import_id_qid172807697,
+    mds_self_rated_enjoy = import_id_qid172807701_1,
+    salary_pre_mds = import_id_qid96,
+    work_exp = import_id_qid172807686,
+    ds_skill_confidence = import_id_qid98_1,
+    does_optional_qs = import_id_qid172807685,
+    currently_job_searching = import_id_qid92,
+    baseline_happiness = import_id_qid99_1,
+    freq_attend_mds_career_events = import_id_qid93
+  ) %>%
+  drop_na() %>%
+  mutate(year = 2019)
+
+salary_df_2020 <- salary_df_2020 %>%
+  dplyr::select(contains("qid")) %>%
+  drop_na() %>%
+  mutate(year = 2020)
+colnames(salary_df_2020) <- colnames(salary_df_2019)
+
+salary_df <- bind_rows(salary_df_2019, salary_df_2020)
+head(salary_df)
+```
+
+In `salary_df_test`, the below code does the following:
+
+- Use `toTitleCase()` to change the level names of `freq_attend_mds_career_events` to *Title Style*.
+- Change the factor level `0 - 1 Years` to `Less than 1 Year` in `work_exp`.
+- Convert columns `does_optional_qs`, `currently_job_searching`, and `year` to **NOMINAL factor-type**.
+- Convert the rest of the columns to **ORDERED factor-type**.
+- Make sure that factors `salary_exp_post_grad`, `mds_self_rated_enjoy`, `salary_pre_mds`, `work_exp`, `ds_skill_confidence`, `baseline_happiness`, and `freq_attend_mds_career_events` have the correct level order from left to right via function `levels()`. If not, we will reorder these levels according to the order detailed at the beginning of this exercise.
+
+Run the code before proceeding:
+
+```{r}
+salary_df <- salary_df %>%
+  mutate(
+    freq_attend_mds_career_events =
+      toTitleCase(freq_attend_mds_career_events)
+  ) %>%
+  mutate(work_exp = case_when(
+    work_exp == "0 - 1 Years" ~ "Less than 1 Year",
+    TRUE ~ work_exp
+  )) %>%
+  mutate(
+    does_optional_qs = factor(does_optional_qs),
+    currently_job_searching = factor(currently_job_searching),
+    year = factor(year),
+    salary_exp_post_grad = factor(salary_exp_post_grad, ordered = TRUE),
+    mds_self_rated_enjoy = factor(mds_self_rated_enjoy, ordered = TRUE),
+    salary_pre_mds = factor(salary_pre_mds, ordered = TRUE),
+    work_exp = factor(work_exp, ordered = TRUE),
+    ds_skill_confidence = factor(ds_skill_confidence, ordered = TRUE),
+    baseline_happiness = factor(baseline_happiness, ordered = TRUE),
+    freq_attend_mds_career_events = factor(freq_attend_mds_career_events,
+      ordered = TRUE
+    )
+  ) %>%
+  mutate(
+    salary_exp_post_grad = fct_relevel(
+      salary_exp_post_grad,
+      "Less than $60,000",
+      "$60,000 to $80,000",
+      "$80,001 to $100,000",
+      "$100,001 to $120,000",
+      "More than $120,000"
+    ),
+    salary_pre_mds = fct_relevel(
+      salary_pre_mds,
+      "Less than $60,000",
+      "$60,000 to $80,000",
+      "$80,001 to $100,000",
+      "$100,001 to $120,000",
+      "More than $120,000"
+    ),
+    work_exp = fct_relevel(
+      work_exp,
+      "Less than 1 Year",
+      "1 - 4 Years",
+      "4 - 7 Years",
+      "7 - 10 Years",
+      "10+ Years"
+    ),
+    freq_attend_mds_career_events = fct_relevel(
+      freq_attend_mds_career_events,
+      "Not Often",
+      "Sometimes",
+      "Often"
+    )
+  )
+```
+
+## Q2.1. Exploratory Data Analysis
+
+rubric={accuracy:4,viz:9,reasoning:9}
+
+Make eight suitable plots of `salary_exp_post_grad` versus each one of the rest of factor-type variables except `year`. Nonetheless, in these eight plots, include panels per `year`.
+
+> **Note:** If you are using the same class of plot eight times, build a function first.
+
+**ANSWER:**
+
+```{r tags=c()}
+# Your plotting function(s).
+
+# YOUR CODE HERE
+```
+
+**In one or two sentences BY PLOT**, comment on your graphical findings by plot:
+
+**ANSWER (`mds_self_rated_enjoy` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`salary_pre_mds` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`work_exp` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`ds_skill_confidence` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`does_optional_qs` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`currently_job_searching` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`baseline_happiness` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+**ANSWER (`freq_attend_mds_career_events` versus `salary_exp_post_grad`):**
+
+_Type your answer here, replacing this text._
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=5}
+# You plot goes here.
+
+# YOUR CODE HERE
+```
+
+## Q2.2. Choosing a Regression Model
+
+rubric={reasoning:3}
+
+Given the form in the response `salary_exp_post_grad`, what is the  most suitable regression model for this survey data? What function on `R` would you use here? **Answer in two o three sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q2.3. Naive Data Modelling
+
+rubric={accuracy:6,reasoning:6}
+
+Let us begin by just using the $X$ (`mds_self_rated_enjoy`) and $Y$ (`salary_exp_post_grad`) of interest in this observational study. Given your response in **Q2.2**, estimate a regression model with these two variables only and call it `initial_model`. 
+
+However, before starting with the model fitting, it is important to highlight something regarding `mds_self_rated_enjoy` and the rest of the **non-binary** survey questions . These variables are ordinal. Thus, when fitting a regression with them as explanatory variables (regardless of whether the regression is ordinary least-squares, Binary Logistic, count-type, etc.), we are likely interested in assessing the statistical significance of the difference between their ordered levels along with the corresponding interpretation. This will take us to the concept of contrasts.
+
+By default, `R` reports the coefficients for the contrasts based on orthogonal polynomials **in ordered-type factors**. Roughly speaking, using polynomial contrasts in an ordered factor of $k$ levels, we would fit $k-1$ polynomials. Then, we would statistically assess whether any of the polynomial fits of that factor vary with the response $Y$. For instance, if we have four levels in an ordered factor, we would fit linear (`L`), quadratic (`Q`), and cubic (`C`) polynomials. Then, for each one of these polynomials, we would ask how much the relationship with the response looks like a line (`L`), a parabola (`Q`), and a cubic (`C`). Note that this class of modelling assumes **equally-spaced levels** in the ordered factor.
+
+However, to make interpretation more straightforward, there is an alternative contrast modelling. This modelling is called the **successive difference** contrasts. If we want to answer whether there are differences between the ordered levels, we will check these successive difference contrasts. The model estimates in these contrasts are the differences between the means of the second and first levels, the third and second levels, etc. We have to set up the `R` contrasts setting as follows:
+
+```{r}
+# Run this code before proceeding.
+options(contrasts = c("contr.treatment", "contr.sdif"))
+```
+
+Show the model's summary via the function `tidy()`. Do not forget to calculate the $p$-values for the regression coefficients along with the adjusted $p$-values using a 5% false discovery rate adjustment via the Benjamini-Hochberg procedure (**check the below note**).
+
+> **Note:** In terms of regression analysis, it is usual to work with the nominal $p$-values (i.e., the raw $p$-values obtained from estimating the regression model) when testing multiple regression coefficients. Nonetheless, there has been work in the literature on adjusting for multiple testing in these frameworks to prevent false positives. **For the sake of this case study**, let us assume we want to control for this. You can find more information on this matter in [**Mundfrom et al. (2006)**](https://www.semanticscholar.org/paper/Bonferroni-Adjustments-in-Tests-for-Regression-Mundfrom-Perrett/b51672d43fa2e107b0415782e79b9ce1517d7a30?sort=relevance&page=2).
+
+Depending on the regression model you indicated in **Q2.2**, [**DSCI 562 lecture notes**](https://pages.github.ubc.ca/MDS-2023-24/DSCI_562_regr-2_students/README.html) will be helpful with the `R` syntax.
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+By looking at the model's summary in `initial_model` on the adjusted $p$-values, what can you conclude on the statistical relationship between self-rated enjoyment of MDS with the salary expectation after MDS graduation? **Answer in two o three sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+Given your results in the `initial_model` summary, **comment in two o three sentences** on how adding the rest of the survey questions (as stratified confounders per se) will benefit your observational study in identifying causality.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q2.4. Full Data Modelling
+
+rubric={accuracy:4,reasoning:5}
+
+Now, estimate regression model called `full_model` of `salary_exp_post_grad` versus `mds_self_rated_enjoy` **along with the rest of the survey questions and `year` as STANDALONE stratified confounders per se (i.e., no need to do any other strata manipulation)**. Show the model's summary via the function `tidy()`.
+
+Do not forget to calculate the $p$-values for the regression coefficients along with the adjusted $p$-values using a 5% false discovery rate adjustment via the Benjamini-Hochberg procedure.
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+By looking at the model's summary in `full_model` on the adjusted $p$-values, what can you conclude on the statistical relationship between self-rated enjoyment of MDS with the salary expectation after MDS graduation? Also, comment on the relationship between the salary expectation after MDS graduation and the confounders.
+
+**Comment in one o two paragraphs.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+Is there a statistical difference between the data of both years? **Answer in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q2.5. Confounding Stratification
+
+rubric={reasoning:4}
+
+**In three or four sentences**, explain the respondents' stratification in the `full_model` made by the confounders (with `year` included). State any assumptions made on the `full_model`.
+
+_Type your answer here, replacing this text._
+
+## Q2.6. Primary Model Selection
+
+rubric={accuracy:1,reasoning:3}
+
+It is necessary to statistically check whether `full_model` provides a better data fit than the `initial_model`. Using $\alpha = 0.05$, conduct the corresponding hypothesis testing (**provide the necessary code**). Do not forget to specify the corresponding hypotheses and conclusion **in your written answer**.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## Q2.7. Reduced Data Modelling
+
+rubric={accuracy:4,reasoning:3}
+
+Based on your results in the `full_model` obtained in **Q2.4**, estimate a third regression model called `reduced_model`. This model should only contain those **STANDALONE** explanatory variables that turned out to have at least one significant regression coefficient.
+
+Show the model's summary via the function `tidy()`. Do not forget to calculate the $p$-values for the regression coefficients along with the adjusted $p$-values using a 5% false discovery rate adjustment via the Benjamini-Hochberg procedure.
+
+Comment on your statistically significant results **in two or three sentences**.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## Q2.8. Secondary Model Selection
+
+rubric={accuracy:4,reasoning:3}
+
+As in **Q2.6**, make pairwise comparisons between `initial_model`, `full_model`, and `reduced_model`. Do not forget to correct for multiple testing (using a 5% false discovery rate adjustment via the Benjamini-Hochberg procedure).
+
+Based on these comparisons, which model would you finally choose? **Answer in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## Q2.9. Inferential Conclusions
+
+rubric={reasoning:8}
+
+Suppose you **attempt** to use the chosen model in **Q2.8** **to explain causality** between `salary_exp_post_grad` and `mds_self_rated_enjoy`, along with the corresponding confounders. Interpret and communicate this chosen model in 300-500 words.
+
+> **Heads-Up:** Interpreting the regression coefficients is optional in this part. You can do it if you consider it necessary for your general conclusion.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## (Challenging) Q2.10. Study Critique
+
+rubric={reasoning:4}
+
+From the MDS student study above, write **one or two paragraphs** criticizing the study design and analysis. If you were to run this same study again, how would you improve it?
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Submission
+
+**CONGRATULATIONS!!!! You are done with the last lab of the statistical stream in MDS!** 
+
+- Knit the assignment to generate the `.pdf` file and push everything to your Github repo.
+- Double check all the figures, texts, equations are rendered properly in the `.pdf` file
+- **Submit the `.pdf` file to Gradescope.**
+
+# Attribution
+
+The question, data, and analysis that makes up the questions in Exercise 2 were derived from a survey and analysis performed by the following past MDS students:
+
+- Carrie Cheung.
+- Alex Pak.
+- Talha Siddiqui.
+- Evan Yathon.

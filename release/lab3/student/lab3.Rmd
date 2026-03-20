@@ -1,0 +1,767 @@
+---
+title: "DSCI 554 Lab 3"
+subtitle: Power Analysis, Early Stopping in A/B Testing, and Causality Through Observational Studies
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+
+# Lab Overview
+
+In this lab, you will practice power and sample size calculations in A/B testing. Moreover, you will explore the impact of early stopping in A/B testing. Finally, you will be introduced to investigating causality through observational studies.
+
+# Lab Mechanics
+
+rubric={mechanics:5}
+
+- Paste the URL to your GitHub repo here: **INSERT YOUR GITHUB REPO URL HERE**
+- Once you finish the assignment, you must **knit** this `R` markdown to create a `.pdf` file and push everything to your GitHub repo using `git push`. You are responsible for ensuring all the figures, texts, and equations in the `.pdf` file are appropriately rendered.
+- **You must submit the rendered `.pdf` file to Gradescope.**
+
+> **Heads-up:** You need to have a minimum of 3 commits.
+
+# Code Quality
+
+rubric={quality:3}
+
+The code that you write for this assignment will be given one overall grade for code quality. Check our [**code quality rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_quality.md) as a guide to what we are looking for. Also, for this course (and other MDS courses that use `R`), we are trying to follow the `tidyverse` code style. There is a guide you can refer too: <http://style.tidyverse.org/>
+
+Each code question will also be assessed for code accuracy (i.e., does it do what it is supposed to do?).
+
+# Writing
+
+rubric={writing:3}
+
+To get the marks for this writing component, you should:
+
+- Use proper English, spelling, and grammar throughout your submission (the non-coding parts).
+- Be succinct. **This means being specific about what you want to communicate, without being superfluous.**
+
+Check our [**writing rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_writing.md) as a guide to what we are looking for.
+
+# A Note on Challenging Questions
+
+Each lab will have a few challenging questions. These are usually low-risk questions and will contribute to maximum 5% of the lab grade. The main purpose here is to challenge yourself or dig deeper in a particular area. When you start working on labs, attempt all other questions before moving to these questions. If you are running out of time, please skip these questions.
+
+We will be more strict with the marking of these questions. If you want to get full points in these questions, your answers need to
+
+- be thorough, thoughtful, and well-written,
+- provide convincing justification and appropriate evidence for the claims you make, and
+- impress the reader of your lab with your understanding of the material, your analytical and critical reasoning skills, and your ability to think on your own.
+
+# Setup
+
+If you fail to load any packages, you can install them and try loading the library again.
+
+```{r load libraries, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(purrr)
+library(kableExtra)
+library(cowplot)
+```
+
+\newpage
+
+# Exercise 1: Understanding and Calculating Power
+
+We are going to go through the motions of hypothesis testing. This will help us frame our power calculations in this exercise and determine an appropriate sample size in **Exercise 2**.
+
+> **Note:** This refresher on the [**Power of the Test**](https://pages.github.ubc.ca/MDS-2023-24/DSCI_554_exper-causal-inf_students/notes/appendix-causality-exp-cheatsheet.html#type-i-error-alpha) might be helpful to solve this exercise.
+
+## Q1.1. Formulating the Hypotheses
+
+rubric={reasoning:4}
+
+Suppose a company's marketing team has developed a new video for their TikTok ad. They want to know if this *new* ad will increase the ad engagement (which they will measure via **ad dwell time** in seconds) compared to the *original* ad they are currently running. Therefore, you have two experimental treatments: *original* and *new* ad.
+
+Write down the hypotheses in this context for a **one-sided** test in plain words **AND** mathematically. **Do not forget to define your mathematical notation.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q1.2. Computing the Standard Error
+
+rubric={accuracy:1}
+
+The company would like to run an experiment on TikTok users in the age demographic most of their customers fall (between 16 and 24 years old). 
+
+Suppose that they have previously collected data on several other video ads from this demographic. These **sample data** estimate that the standard deviation of **any** ad dwell time will be 15 seconds. The distribution of ad dwell time will be **approximately symmetric**.
+
+If we had **100 viewers per treatment**, **what would be the approximate standard error for the estimated mean difference $\hat{\delta} = \hat{\mu}_{\text{new}} - \hat{\mu}_{\text{original}}$?**
+
+If the population variances are unknown, recall the standard error $\text{SE}\left(\hat{\delta}\right)$ for the difference between two sample means is:
+
+$$\text{SE}\left(\hat{\delta}\right) = \sqrt{\frac{S_{\text{new}}^2}{n_{\text{new}}} + \frac{S_{\text{original}}^2}{n_\text{original}}},$$
+
+Assuming that the variances $S_{\text{new}}^2$ and $S_{\text{original}}^2$ are equal in both treatments, while $n = n_{\text{new}} = n_{\text{original}}$, compute $\text{SE}\left(\hat{\delta}\right)$ and store this value in a vector with the name `se_diff_means_n_100`.
+
+```{r tags=c()}
+se_diff_means_n_100 <- NULL
+
+# YOUR CODE HERE
+
+se_diff_means_n_100
+```
+
+## Q1.3. Plotting the Null Distribution of $\hat{\delta}$
+
+rubric={viz:4}
+
+What does the **theoretical sampling distribution** of the mean difference
+
+$$\hat{\delta} = \hat{\mu}_{\text{new}} - \hat{\mu}_{\text{original}} = \bar{X}_{\text{new}} - \bar{X}_{\text{original}}$$
+
+look like when the null hypothesis is true? 
+
+Assume the degrees of freedom are greater than 30 in this case, so the distribution of $\hat{\delta}$ will be approximately **Normal** (**recall the behaviour of the $t$-distribution when the degrees of freedom tend to infinity!**). The standard deviation of this distribution (i.e., the standard error for practical purposes) would be about the value calculated in **Q1.2** (i.e., `se_diff_means_n_100`). **Under the null hypothesis**, the **mean difference** would be equal to `0`.
+
+**Plot this distribution in blue** where the $x$-axis is the **difference between mean ad dwell time (in seconds)** and the $y$-axis is the density of this **theoretical sampling distribution**. Store the plot in `hypoth_diff_dist`.
+
+**Set your $x$-axis limits between `-10` and `20`. Moreover, set the $y$-axis limits between `0` and `0.6`.**
+
+```{r fig.width=9, fig.height=6, tags=c()}
+hypoth_diff_dist <- NULL
+
+# YOUR CODE HERE
+
+hypoth_diff_dist
+```
+
+## Q1.4. Plotting Critical Value on the Null Distribution
+
+rubric={accuracy:2,viz:3}
+
+For what **critical value** of $\hat{\delta}$ would we reject the null hypothesis if we set the significance level $\alpha = 0.05$?
+
+Draw this value as a boundary (**using a vertical dashed blue line**) on the null distribution of $\hat{\delta}$ you plotted in **Q1.3** (i.e., object `hypoth_diff_dist`).
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# YOUR CODE HERE
+```
+
+## Q1.5. Plotting the Alternative Distribution of $\hat{\delta}$
+
+rubric={viz:4}
+
+We will perform some hypothetical calculations to determine the probability we reject the null hypothesis if the alternative hypothesis were actually true. This probability is called the **power**, and we can compute it for **different sample sizes** or **different effect sizes**.
+
+**The company, in this example, defines a PRACTICAL significant result for a mean ad dwell time difference to be 2.5 seconds.** Suppose we proceeded with our experiment as suggested above (**100 experimental units, i.e. viewers, per treatment**), and the new video ad increased the dwell time by an additional 2.5 seconds. We would like to calculate the probability that we would detect that increase, which is the power.
+
+Before we do that calculation, on the object `hypoth_diff_dist`, **include in red the Normal alternative distribution when the mean difference is 2.5 seconds** (assume the standard deviation is equal to `se_diff_means_n_100`).
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# YOUR CODE HERE
+```
+
+## Q1.6. Calculating Power with $100$ Experimental Units per Treatment
+
+rubric={accuracy:2}
+
+To calculate the power for observing this **effect size** (i.e., the difference is equal to 2.5 seconds) under the specified experimental conditions (100 experimental units per treatment and assuming the $\text{SE}\left(\hat{\delta}\right)$ `se_diff_means_n_100`), we need to find the **distributional area** where the true difference in mean dwell time is equal to 2.5 seconds. This area lies to the right-hand side of the upper 5% boundary (i.e., the vertical dashed blue line) of the distribution of the null hypothesis **but under red the distribution of the alternative hypothesis**. The plot in **Q1.5** will help you to visualize this.
+
+Store this value in a vector with the name `power_n_100`.
+
+```{r tags=c()}
+power_n_100 <- NULL
+
+# YOUR CODE HERE
+
+power_n_100
+```
+
+## Q1.7. Increasing to $1,000$ Experimental Units per Treatment
+
+rubric={viz:8}
+
+Create the same visualization like the one from **Q1.5**, this time assuming 1000 ad viewers (i.e., experimental units) per treatment. Again, assume that the variances $S_{\text{new}}^2$ and $S_{\text{original}}^2$ are equal between both treatments i.e., $15^2 \text{ seconds}^2$. Include proper axes labels.
+
+**Assign the name `hypoth_diff_dist_1000` to your plot. Set your $x$-axis limits between `-10` and `20`. Moreover, set the $y$-axis limits between `0` and `0.6`.**
+
+> **Hint:** You will need to compute a new standard error:
+$$\text{SE}\left(\hat{\delta}\right) = \sqrt{\frac{S_{\text{new}}^2}{n_{\text{new}}} + \frac{S_{\text{original}}^2}{n_\text{original}}}.$$
+
+```{r fig.width=9, fig.height=6, tags=c()}
+hypoth_diff_dist_1000 <- NULL
+
+# YOUR CODE HERE
+
+hypoth_diff_dist_1000
+```
+
+## Q1.8. Calculating Power with $1,000$ Experimental Units per Treatment
+
+rubric={accuracy:2}
+
+Calculate the power for an experiment using this larger sample size ($n = 1,000$ per treatment).
+
+Store this value in a vector with the name `power_n_1000`.
+
+```{r tags=c()}
+power_n_1000 <- NULL
+
+# YOUR CODE HERE
+
+power_n_1000
+```
+
+\newpage
+
+## Q1.9. Final Comments on Increasing the Sample Size
+
+rubric={reasoning:4}
+
+In **Q1.8**, we should observe a very high power for a sample size of $n = 1000$ for each treatment Could there be any **practical downside** to running an experiment with this sample size?
+
+If there is a **practical downside**, what might we prefer to do instead of running an experiment under these conditions? On the other hand, if there is no practical downside and this is ideal, why is that?
+
+> **Note:** When thinking about practical downsides, consider factors out of the statistical framework (e.g., business terms).
+
+**Answer in three or four sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 2: What Sample Size to Use
+
+In **Exercise 1**, we explored how we can calculate power given a sample size. Frequently, we want to do the opposite, calculate a sample size for a given power. This is useful for planning experiments. We do this by flipping the math in the equations of the hypothesis testing.
+
+## Q2.1. First Manual Sample Size Computation per Treatment
+
+rubric={accuracy:3}
+
+Let us calculate the sample size **per treatment** where our power is 90% using the case from **Exercise 1** with $\alpha = 0.05$. Do this using `R` as a manual calculator (i.e., **do not use the function from the `pwr` package**). Again, assume that the population standard deviations are equal in both treatments, i.e., approximately 15 seconds.
+
+The sample size computation formulae vary depending on the hypothesis test (or even on a given regression model!). For this test on the continuous means of two independent populations, the formula for the **sample size $n$ PER TREATMENT** is:
+
+$$n = \frac{2 S_p^2 (Z_{1 - \alpha} + Z_{1 - \beta})^2}{\texttt{diff}^2},$$
+
+where $\alpha$ is the desired significance level, $1 - \beta$ is the desired power, $\texttt{diff}$ is the hypothesized mean difference (2.5 seconds), and the pooled variance is
+
+$$S_p^2  = \frac{S_{\text{new}}^2 + S_{\text{original}}^2}{2}.$$
+
+> **Heads-up:** $Z_{1 - \alpha}$ and $Z_{1 - \beta}$ are quantiles coming from a Standard Normal distribution (i.e., a Normal distribution with mean equal to `0` and standard deviation equal to `1`).
+
+Store this value in a vector with the name `tiktok_sample_size`.
+
+```{r tags=c()}
+tiktok_sample_size <- NULL
+
+# YOUR CODE HERE
+
+tiktok_sample_size
+```
+
+## Q2.2. Second Manual Sample Size Computation per Treatment
+
+rubric={accuracy:3}
+
+Continuing with the TikTok ad example we have been working with so far. Suppose the targeted power was 95%, and we were using $\alpha = 0.01$. **What sample size *per treatment* should we use for these experimental conditions?** Use `R` as a **manual calculator**.
+
+Store this value in a vector with the name `tiktok_sample_size_stricter`.
+
+```{r tags=c()}
+tiktok_sample_size_stricter <- NULL
+
+# YOUR CODE HERE
+
+tiktok_sample_size_stricter
+```
+
+\newpage
+
+## Q2.3. Sample Size Computation per Treatment using Package `pwr`
+
+rubric={accuracy:2}
+
+Now use the function from the `pwr` `R` package to perform two sample size estimations for the TikTok ad experiment **per treatment**, by setting:
+
+1.  Power as 90% and $\alpha = 0.05$.
+2.  Power as 95% and $\alpha = 0.01$.
+
+The output has to be **practically equal** to your results in **Q2.1** and **Q2.2**.
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## (Challenging) Q2.4. A More Comprehensive Power Analysis Simulation
+
+rubric={accuracy:3,viz:3}
+
+Simulation is a powerful tool for sample size calculations. When we move to more complex analyses, it is tough to do these sorts of calculations using math. Thus in practice, we very often resort to simulation.
+
+We will again calculate the sample size for the TikTok video example problem where power is 90% and $\alpha = 0.05$. However, instead of relying on mathematical formulas to calculate this, we will use simulation.
+
+To get you started, we give you the code for a function named `t_test`, which takes a sample size (**per treatment**), a **raw effect size** (*not adjusted by the population standard deviation*), and a population standard deviation. It uses these values to create two samples, each drawn from Normal distributions of a sample size specified by the user. The Normal distribution (that the samples are drawn from) corresponds to:
+
+1. What we expect if the null hypothesis is true (mean equal to 0, and standard deviation specified by the user).
+2. What we expect if the alternative hypothesis is true (mean is set to the raw effect size specified by the user, along with the standard deviation).
+
+The function then performs a $t$-test and returns a one-row tibble that has three columns:
+
+- `t_stat`: $t$-statistic.
+- `p_value`: $p$-value from performing a $t$-test.
+- `significant`: a Boolean which is TRUE when the $p-\text{value } < \alpha$, whose default value is 0.05.
+
+```{r}
+# Run this chunk of code before proceeding.
+
+# Two-sample t-test for simulating power and sample size
+# derived 
+# from: https://cran.r-project.org/web/packages/paramtest/vignettes/Simulating-Power.html
+
+# @param n (numeric): Sample size for each treatment.
+# @param effect_size (numeric): Expected raw difference in sample means .
+# (when null hypothesis is true versus when alternative hypothesis is true).
+# @param pop_sd (numeric): Population standard deviation.
+# @param alpha (numeric): Significance threshold (default is 0.05).
+
+# @return tibble: A tibble that has 3 columns; t_stat (t-statistic), 
+# p_value (p-value from performing a two-sample t-test),
+# and significant (a Boolean which is TRUE when 
+# the p-value was < alpha - whose default value is 0.05).
+
+t_test <- function(n, effect_size = 0, pop_sd, alpha = 0.05) {
+  sample_original <- rnorm(n, mean = 0, sd = pop_sd)
+  sample_new <- rnorm(n, mean = effect_size, sd = pop_sd)
+
+  # Note the difference is set up to zero by default given that our
+  # simulated data is already set up with mean = effect_size.
+  # The simulation is designed to catch any signal different from zero.
+  t_test_results <- t.test(
+    x = sample_new, y = sample_original,
+    var.equal = TRUE,
+    alternative = "greater"
+  )
+  t_stat <- t_test_results$statistic
+  p_value <- t_test_results$p.value
+
+  return(tibble(t_stat, p_value, significant = (p_value < alpha)))
+}
+
+# Example
+set.seed(554)
+t_test(n = 1000, effect_size = 2, pop_sd = 5)
+```
+
+Your task is to extend this code to do the following:
+
+**1. Write another function which calls the `t_test` function many times (say 1000 replicates) and calculates the power. Call it `t_test_power`.**
+
+```{r tags=c()}
+t_test_power <- NULL
+
+# YOUR CODE HERE
+
+t_test_power
+```
+
+**2. Calculate the power for the TikTok video example (where $\alpha = 0.05$) from $n = 100$ to $1000$ increasing by $50$ experimental units per treatment. Recall that the raw effect size is 2.5 seconds, and the population standard deviation is 15 seconds for both treatments.**
+
+```{r tags=c()}
+# Do not delete this line.
+set.seed(123)
+
+# YOUR CODE HERE
+```
+
+**3. Plot the sample size ($x$-axis) versus power ($y$-axis). Include proper axes labels and title.**
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# YOUR CODE HERE
+```
+
+\newpage
+
+# Exercise 3: Basics of Early Stopping in Hypothesis Testing
+
+As in **Q2.4**, we will work with different simulations to better understand the implications on early stopping in A/B testing. Let us retake the example of the TikTok ad. Recall they want to know if a *new* ad will cause an increase in the ad engagement (which they will measure via **ad dwell time**) compared to the *original* ad currently running. To do this, they will run an A/B testing.
+
+Suppose that initially they plan to run the experiment with the **original** sample size per group $n = n_\text{original} = n_\text{new}$. Nonetheless, in terms of early stopping, the team would collect the data **gradually** for both groups and they will stop the experiment **once they find a significant result** (i.e., $p-\text{value} < \alpha$). 
+
+First, let us see how the $p$-values evolve as we increase the sample size until getting to $n$ without the early stopping **in a single A/B testing**. The function `incremental_t_test()` performs a two-sample $t$-test beginning a given `increasing_size` for both groups (**before the `for` loop, it is set up equal to `sample_increase`**), then it gradually increases by `sample_increase` until getting to `n` for a single experiment. It returns a tibble that has two columns:
+
+- `inc_sample_size`: the final sample size per group for which the $t$-test is performed.
+- `p_value`: $p$-value from performing a given $t$-test.
+
+```{r}
+# Two-sample t-test for tracking p-values by incremental sample sizes until getting to n.
+
+# @param n (numeric): Initially planned sample size for each treatment, 
+# n = n_original = n_new.
+# @param effect_size (numeric): Difference in sample means expected (when null hypothesis 
+# is true versus when alternative 
+# hypothesis is true).
+# @param pop_sd (numeric): Population standard deviation.
+# @param sample_increase (numeric): Initial sample size in A/B testing and sample 
+# size increment.
+# @param alpha (numeric): Significance threshold (default is 0.05).
+
+# @return p.value.df: A tibble that has 2 columns; inc_sample_size 
+# (increasing sample size) 
+# and p_value (p-value from performing a two-sample t-test).
+
+incremental_t_test <- function(n, effect_size, pop_sd, sample_increase, alpha = 0.05) {
+  sample_original <- rnorm(n, mean = 0, pop_sd)
+  sample_new <- rnorm(n, mean = effect_size, pop_sd)
+
+  p.value.df <- tibble(
+    inc_sample_size = rep(0, n / sample_increase),
+    p_value = rep(0, n / sample_increase)
+  )
+  
+  increasing_size <- sample_increase
+
+  for (i in 1:nrow(p.value.df))
+  {
+    # Note the difference is set up to zero by default given that our
+    # simulated data is already set up with mean = effect_size.
+    # The simulation is designed to catch any signal different from zero.
+    t_test_results <- t.test(
+      x = sample_new[1:increasing_size],
+      y = sample_original[1:increasing_size],
+      var.equal = TRUE,
+      alternative = "greater"
+    )
+    p.value.df[i, "p_value"] <- as_tibble(t_test_results$p.value)
+    p.value.df[i, "inc_sample_size"] <- increasing_size
+    increasing_size <- increasing_size + sample_increase
+  }
+  
+  return(p.value.df)
+}
+```
+
+## Q3.1. $p$-value Progress in Sequential Two-sample $t$-tests
+
+rubric={accuracy:1,viz:3,reasoning:3}
+
+Suppose that **the null hypothesis is true in fact** and there is no difference in dwell time between both ads. Assuming that both treatment groups have the same population standard deviation of 15 seconds, with a final sample size per treatment `n` of `100` and $\alpha = 0.05$, use `incremental_t_test()` to track the $p$-values of sequential two-sample $t$-tests (beginning a sample size of `2` until `100`).
+
+Then, plot this $p$-value sequence as a line with the incremental sample size on the $x$-axis and $p$-value on the $y$-axis. Add a dashed horizontal red line that indicates the threshold of $\alpha = 0.05$. 
+
+Also, **in one or two sentences**, describe the $p$-value behaviour.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# Do not delete this line.
+set.seed(123)
+
+# YOUR CODE HERE
+```
+
+## Q3.2. No Early Stopping when the Null Hypothesis is True
+
+rubric={accuracy:2,viz:3,reasoning:3}
+
+Before going into a full simulation involving A/B testings with early stopping, **let us check what happens when we run the full experiment with the initially planned sample size per treatment**. This will help us to revisit the theoretical concept of the significance level $\alpha$.
+
+Suppose that **the null hypothesis is true in fact** and there is no difference in dwell time between both ads. Moreover, assume that both treatment groups have the same population standard deviation of 15 seconds. Using the function `t_test()` from **Q2.4** and $\alpha = 0.05$, simulate 1000 A/B testings (each with a sample size of 100 per treatment) and store the results in an data frame called `p_values_reg_test`.
+
+> **Heads-Up:** You do not have to do the challenging exercise **Q2.4** to complete this task. You only need to properly use the function `t_test()` provided there.
+
+Plot the counts of those 1000 A/B testings in a histogram of 20 bins using `p_values_reg_test` with counts on the $y$-axis and $p$-value on the $x$-axis. Moreover, colour the first two bins (from left to right) in yellow and the rest in blue.
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# Do not delete this line.
+set.seed(554)
+
+p_values_reg_test <- NULL
+
+# YOUR CODE HERE
+```
+
+Finally, from `p_values_reg_test`, obtain the proportion of those 1000 A/B tests with `TRUE` in the column `significant` (compute it in the below code chunk).
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+**Answer the following in one or two sentences per item:**
+
+1. What does this proportion represent in your simulation in terms of the hypothesis testing?
+2. Is it related to a fundamental concept in hypothesis testing? Which fundamental concept is it?
+3. If it is related to a fundamental concept in hypothesis testing, what testing parameter should this proportion converge to?
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q3.3. Early Stopping when the Null Hypothesis is True
+
+rubric={accuracy:2,viz:3,reasoning:3}
+
+Now, let us perform a similar simulation as in **Q3.2** but with early stopping (**as fully described at the beginning of this Exercise 3**). The function `early_stopping_t_test()` performs a two-sample $t$-test beginning a given `sample_increase` for both treatments **in a single A/B testing**. The function gradually increases `sample_increase` by 2 and it stops once it finds a significant result (i.e., $p-\text{value} < \alpha$). 
+
+> **Heads-up**: Note that the `for` loop could get up to the last experimental replicate without reaching significance.
+
+The function returns a one-row tibble that has four columns:
+
+- `sample_increase`: the sample size reached by the A/B testing per treatment. 
+- `t_stat`: $t$-statistic from the last $t$-test in the `for` loop.
+- `p_value`: $p$-value from performing the last $t$-test in the `for` loop.
+- `significant`: a Boolean which is `TRUE` when the $p-\text{value } < \alpha$, whose default value is `0.05`.
+
+```{r}
+# Two-sample t-test for simulating power and sample size with early stopping.
+
+# @param n (numeric): Initially planned sample size for each treatment, 
+# n = n_original = n_new.
+# @param effect_size (numeric): Difference in sample means expected (when null hypothesis 
+# is true versus when alternative hypothesis is true).
+# @param pop_sd (numeric): Population standard deviation.
+# @param sample_increase (numeric): Initial sample size in A/B testing and 
+# sample size increment.
+# @param alpha (numeric): Significance threshold (default is 0.05).
+
+# @return tibble: A tibble that has 4 columns; sample_increase (final sample size per 
+# treatment coming from the for loop), t_stat (t-statistic), p_value (p-value 
+# from performing a two-sample t-test), and significant (a Boolean which is 
+# TRUE when the p-value was < alpha - whose default value is 0.05).
+
+early_stopping_t_test <- function(n, effect_size, pop_sd, sample_increase, alpha = 0.05) {
+  sample_original <- rnorm(n, mean = 0, sd = pop_sd)
+  sample_new <- rnorm(n, effect_size, sd = pop_sd)
+  
+  increasing_size <- sample_increase
+
+  for (i in 1:(n / sample_increase))
+  {
+    # Note the difference is set up to zero by default given that our
+    # simulated data is already set up with mean = effect_size.
+    # The simulation is designed to catch any signal different from zero.
+    t_test_results <- t.test(
+    x = sample_new[1:increasing_size],
+    y = sample_original[1:increasing_size],
+    var.equal = TRUE,
+    alternative = "greater"
+  )
+    t_stat <- t_test_results$statistic
+    p_value <- t_test_results$p.value
+    if (p_value < alpha) break
+    increasing_size <- increasing_size + sample_increase
+  }
+  
+  increasing_size <- increasing_size - sample_increase
+
+  return(tibble(increasing_size, t_stat, p_value, significant = (p_value < alpha)))
+}
+
+# Example
+# We can see this A/B testing stopped at replicate 64 (in both treatments)
+# once the t-test reached significance.
+set.seed(123)
+early_stopping_t_test(
+  n = 100, effect_size = 7,
+  pop_sd = 15, sample_increase = 2
+)
+```
+
+Suppose that **the null hypothesis is true in fact** and **there is no difference in dwell time between both ads**. Moreover, assume that both treatment groups have the same population standard deviation of 15 seconds. Increase your group sample by 2 replicates, beginning 2 with a final sample size of 100 elements per treatment. To do this, use the function `early_stopping_t_test()` and $\alpha = 0.05$, simulate 1000 A/B testings and store the results in an data frame called `p_values_early_test`.
+
+Plot the counts of those 1000 A/B testings in a histogram of 20 bins using
+`p_values_early_test` with counts on the $y$-axis and $p$-value on the $x$-axis. Moreover, colour the first two bins (from left to right) in yellow and the rest in blue.
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# Do not delete this line.
+set.seed(554)
+
+p_values_early_test <- NULL
+
+# YOUR CODE HERE
+```
+
+Finally, from `p_values_early_test`, obtain the proportion of those 1000 A/B tests with `TRUE` in the column `significant` (compute it in the below code chunk).
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+**Answer the following in two or three sentences per item:**
+
+1. How does this proportion compare to the one in **Q3.2**?
+2. What does this fact in the previous item (1) indicate?
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## (Challenging) Q3.4. Extending the Early Stopping Simulation
+
+rubric={accuracy:2,viz:2}
+
+Given your results in **Q3.2** and **Q3.3**, run another four simulations just as in **Q3.3** but varying the significance level $\alpha$ with the following values: `0.001`, `0.005`, `0.01`, `0.02`, `0.04`, and `0.05`. Recall you will be obtaining 1000 A/B tests per simulation **under the early stopping framework**. For each of these simulations, obtain the **proportion** of those 1000 A/B tests where the null hypothesis was rejected. 
+
+> **Heads-up:** Note you should assume that both treatment groups have the same population standard deviation of 15 seconds. Increase your group sample by 2 replicates, beginning 2 with a final sample size of 100 elements per group. **These simulations still assume that there is NO difference between both treatments (i.e., $H_0$ is true in fact for the population).**
+
+Store your results in a data frame called `significance_results` with columns:
+
+- `alpha` (containing `0.001`, `0.005`, `0.01`, `0.02`, `0.04`, and `0.05`), and
+- `proportion` (the **proportion** mentioned above per simulation).
+
+```{r tags=c()}
+# Do not delete this line.
+set.seed(554)
+
+significance_results <- NULL
+
+# YOUR CODE HERE
+```
+
+Now, using `significance_results`, plot `alpha` ($x$-axis) versus `proportion` ($y$-axis).
+
+```{r fig.width=9, fig.height=6, tags=c()}
+# YOUR CODE HERE
+```
+
+## (Challenging) Q3.5. Multiple Simulations with Early Stopping
+
+rubric={accuracy:2,viz:2}
+
+Now, suppose that **the null hypothesis is not true** and **there is a difference in dwell time between both ads**. Under an early stopping framework via a function called `early_stopping_t_test_alpha()` (which you will code up), you will run different simulations under a combination of different settings (as explained in the below code). **Run 1000 replicates per setting combination.**
+
+> **Heads-up:** You will assume that both treatment groups have the same population standard deviation of 15 seconds. Also, we use a raw $\alpha = 0.05$ but adjusted by the planned number of multiple peekings (as seen in column `alpha` in `significance_results_2`).
+
+Note that the results data frame `significance_results_2` also has the column `multiple_peekings` (not to be used by `early_stopping_t_test_alpha()`, but necessary for a post-simulation plotting).
+
+**By setting scenario**, you need to deliver the following in `significance_results_2`:
+
+- `proportion`: The proportion of those 1000 replicates with statistically significant results (i.e., the power!).
+- `avg_sample_tr`: The average early-stopped sample size by treatment.
+
+> **Hint:** The function `early_stopping_t_test_alpha()` will basically call `early_stopping_t_test()` to be repeated `1000` times (i.e., `1000` replicates per scenario or row in `significance_results_2`) while computing the observed power and the average early-stopped sample size per treatment. You might have coded an analogous function in Q3.4; feel free to use it here as long it provides the necessary outputs.
+
+**Running this set of 96 simulations will take around 6 minutes to complete.**
+
+```{r tags=c()}
+# Run this code before proceeding.
+# First varying setting, sample size by treatment.
+n <- c(100, 200, 400, 800) 
+# Second varying setting, difference between both treatments in ad dwell times.
+effect_size <- c(1, 2.5, 5, 10)
+# Third varying setting, sample size increase in early stopping framework.
+# Function early_stopping_t_test_alpha() will start checking the testing
+# results beginning this sample increase.
+sample_increase <- c(2, 4, 5, 10, 20, 50)
+# Combining this three settings in a grid.
+significance_results_2 <- expand.grid(n, effect_size, sample_increase)
+colnames(significance_results_2) <- c(
+  "n", "effect_size",
+  "sample_increase"
+)
+
+significance_results_2 <- significance_results_2 %>%
+  mutate(
+    multiple_peekings = n / sample_increase,
+    alpha = 0.05 / multiple_peekings,
+    proportion = NA,
+    avg_sample_tr = NA
+  )
+
+# YOUR CODE HERE
+
+head(significance_results_2)
+```
+
+Finally, using `significance_results_2`, plot the results of your different simulations in a grid as follows:
+
+- A column of four plots (one by **planned sample size by treatment**) with `multiple_peekings` on the $x$-axis and the power of the test on the $y$-axis.
+- A column of four plots (one by **planned sample size by treatment**) with `multiple_peekings` on the $x$-axis and the early-stopped `avg_sample_tr` on the $y$-axis.
+
+All plots should have four different coloured lines (one per `effect_size`). Do not forget to include the corresponding legend.
+
+```{r fig.width=18, fig.height=24, tags=c()}
+# YOUR CODE HERE
+```
+
+## (Challenging) Q3.6. Comment on Your Findings
+
+rubric={reasoning:4}
+
+**In no more than four paragraphs**, based on **all** your simulation findings in this **Exercise 3**, explain the problems associated with implementing early stopping in an experiment. Moreover, explain a possible course of action to **correct** this.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 4: Introduction to Observational Studies in Causal Inference
+
+## Q4.1. Confounders in an Observational Study
+
+rubric={reasoning:6}
+
+A group of past MDS students wanted to know whether a person's self-rated enjoyment of the MDS program ($X$) had any causal influence on their expected salary upon graduation ($Y$).
+
+They planned to run a survey to answer this question, which would include (**at least**) the following two questions:
+
+1.  What is your salary expectation after graduation in CAD?
+
+    -   Less than \$60,000
+    -   \$60,000 to \$80,000
+    -   \$80,001 to \$100,000
+    -   \$100,001 to \$120,000
+    -   More than \$120,000
+
+2.  What is your self rated enjoyment of MDS on a scale from 1 to 4 (4 being very happy with MDS and 1 being not happy at all with MDS)?
+
+    -   1
+    -   2
+    -   3
+    -   4
+
+Given that this question can only be realistically answered with an observational study, confounders should be considered when collecting the data (via the planned survey) and carrying out the analysis.
+
+**What confounders do you think should be considered?**
+
+> **Note:** You do have domain expertise here to answer this. When answering
+write one or two sentences to justify the inclusion of each confounder. Include, **at least**, **four confounders** in your answer.
+
+**ANSWER:**
+
+```{r echo=FALSE}
+# IF YOU PREFER, you can use function knitr::kable() to deliver your answer as the table in lab2-Q2.1.
+# Otherwise, you can use plain text.
+
+# YOUR CODE HERE
+```
+
+## Q4.2. Causal Analysis in an Observational Study
+
+rubric={reasoning:6}
+
+Given the question being asked in **Q4.1** and the confounders you answered, how would you analyze the data once you have collected it?
+
+**Answer in two or three sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+# Submission
+
+Congratulations! You are done the lab. Do not forget to:
+
+- Knit the assignment to generate the `.pdf` file and push everything to your Github repo.
+- Double check all the figures, texts, equations are rendered properly in the `.pdf` file
+- **Submit the `.pdf` file to Gradescope.**
+
+# Attribution
+
+- Exercises 1 and 2 in this lab were inspired and derived from [OpenIntro Statistics](https://leanpub.com/openintro-statistics) by David Diez, Mine Cetinkaya-Rundel, and Christopher Barr. 
+- Exercise 3 is based on the work of [**Early stopping**](https://betatim.github.io/posts/early-stopping/) by Tim Head.

@@ -1,0 +1,469 @@
+---
+title: "DSCI 554 Lab 1"
+subtitle: Simpson's Paradox, Multiple Testing, and A/B Testing
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+
+# Lab Overview
+
+This lab focuses on the Simpson's paradox, multiple testing via two procedures (Bonferroni and false discovery rate corrections), and A/B testing. We will apply most of these concepts to real-life studies.
+
+# Lab Mechanics
+
+rubric={mechanics:5}
+
+- Paste the URL to your GitHub repo here: **INSERT YOUR GITHUB REPO URL HERE**
+- Once you finish the assignment, you must **knit** this `R` markdown to create a `.pdf` file and push everything to your GitHub repo using `git push`. You are responsible for ensuring all the figures, texts, and equations in the `.pdf` file are appropriately rendered.
+- **You must submit the rendered `.pdf` file to Gradescope.**
+
+> **Heads-up:** You need to have a minimum of 3 commits.
+
+# Code Quality
+
+rubric={quality:3}
+
+The code that you write for this assignment will be given one overall grade for code quality. Check our [**code quality rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_quality.md) as a guide to what we are looking for. Also, for this course (and other MDS courses that use `R`), we are trying to follow the `tidyverse` code style. There is a guide you can refer too: <http://style.tidyverse.org/>
+
+Each code question will also be assessed for code accuracy (i.e., does it do what it is supposed to do?).
+
+# Writing
+
+rubric={writing:3}
+
+To get the marks for this writing component, you should:
+
+- Use proper English, spelling, and grammar throughout your submission (the non-coding parts).
+- Be succinct. **This means being specific about what you want to communicate, without being superfluous.**
+
+Check our [**writing rubric**](https://github.com/UBC-MDS/public/blob/master/rubric/rubric_writing.md) as a guide to what we are looking for.
+
+# A Note on Challenging Questions
+
+Each lab will have a few challenging questions. These are usually low-risk questions and will contribute to maximum 5% of the lab grade. The main purpose here is to challenge yourself or dig deeper in a particular area. When you start working on labs, attempt all other questions before moving to these questions. If you are running out of time, please skip these questions.
+
+We will be more strict with the marking of these questions. If you want to get full points in these questions, your answers need to
+
+- be thorough, thoughtful, and well-written,
+- provide convincing justification and appropriate evidence for the claims you make, and
+- impress the reader of your lab with your understanding of the material, your analytical and critical reasoning skills, and your ability to think on your own.
+
+# Setup
+
+If you fail to load any packages, you can install them and try loading the library again.
+
+```{r load libraries, message=FALSE, warning=FALSE}
+library(datasets)
+library(tidyverse)
+library(broom)
+library(binom)
+library(scales)
+```
+
+\newpage
+
+# Exercise 1: Simpson's Paradox
+
+The dataset `UCBAdmissions` contains aggregate data from 1973, in the form of six contingency tables, on applicants to graduate school at the University of California, Berkeley (UCB) for the six largest departments (labelled as `A`, `B`, `C`, `D`, `E`, and `F`). Each table shows applicants' absolute frequencies by `Admit` status (`Admitted` or `Rejected`) and `Gender` (`Male` or `Female`).
+
+```{r}
+data(UCBAdmissions)
+UCBAdmissions
+```
+
+[**Bickel et al. (1975)**](https://u.demog.berkeley.edu/~jrw/Biblio/Eprints/%20A-C/bickel.etal.1975.pdf) used this dataset to illustrate Simpson's paradox, as we will see further.
+
+## Q1.1. Data Wrangling
+
+rubric={accuracy:4}
+
+Convert the six contingency tables into a single data frame with the following columns: `Admit` (**two-level nominal factor**, `Admitted` or `Rejected`), `Gender` (**two-level nominal factor**, `Male` or `Female`), `Dept` (**six-level nominal factor**; `A`, `B`, `C`, `D`, `E`, or `F`). 
+
+**The final data frame `UCBAdmissions_training` **must have 4526 individual observations**. Make sure that `Rejected`, `Female` and `A` are the baselines.**
+
+```{r tags=c()}
+UCBAdmissions_training <- as_tibble(UCBAdmissions)
+
+# YOUR CODE HERE
+
+head(UCBAdmissions_training)
+tail(UCBAdmissions_training)
+```
+
+## Q1.2. First Exploratory Data Analysis
+
+rubric={accuracy:2,viz:4,reasoning:2}
+
+Make a suitable **overall plot** of `Admit` versus `Gender`. **Recall that both variables are categorical.**
+
+```{r fig.width=9, fig.height=6, warning=FALSE, tags=c()}
+# YOUR CODE HERE
+```
+
+Graphically speaking, what can we say about the relationship between `Admit` and `Gender`? Is there graphical evidence of sex bias in admission practices during 1973? **Explain in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q1.3. First Regression Model
+
+rubric={accuracy:2,reasoning:3}
+
+Using `Admit` as response and `Gender` as explanatory variable, estimate an appropriate regression model called `UCBAdmissions_first_model`. Using $\alpha = 0.05$, interpret the significant regression coefficients. Is there statistical evidence of sex bias in admission practices during 1973? **Explain in two or three sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+UCBAdmissions_first_model <- NULL
+
+# YOUR CODE HERE
+
+UCBAdmissions_first_model
+```
+
+## Q1.4. Second Exploratory Data Analysis
+
+rubric={accuracy:2,viz:4,reasoning:2}
+
+Now, let us control for a second explanatory variable: `Dept`. Use the same plotting arrangement as in **Q1.2** but facetting by `Dept`.
+
+```{r fig.width=9, fig.height=7, warning=FALSE, tags=c()}
+# YOUR CODE HERE
+```
+
+Graphically speaking, what can we say about the relationship between `Admit` and `Gender` while controlling by `Dept`? Is there graphical evidence of sex bias in admission practices during 1973? **Explain in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q1.5. Second Regression Model
+
+rubric={autograde:2,reasoning:2}
+
+Using `Admit` as response with `Gender` and `Dept` as standalone explanatory variables, estimate an appropriate regression model called `UCBAdmissions_second_model`. Using $\alpha = 0.05$, is there statistical evidence of sex bias in admission practices during 1973? **Explain in two or three sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+UCBAdmissions_second_model <- NULL
+
+# YOUR CODE HERE
+
+UCBAdmissions_second_model
+```
+
+## (Challenging) Q1.6. Explain the Simpson's Paradox
+
+rubric={reasoning:3}
+
+Explain the Simpson's paradox in this context **in two or three sentences**. What is our overall conclusion?
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 2: Bonferroni Correction 
+
+We will be working with the results from a Genome-wide analysis-like study found in `GWAS_results` from Timbers et al. (2016). The dataset contains two columns: a list of gene names (`gene`) and a list of unadjusted $p$-values (`pval`) generated from the analysis (the particular statistical test used is the [**sequence kernel association test**](https://gero.usc.edu/cbph/files/4_9_2013_PAA/15_Kardia_SequenceKernelAssociationTest.pdf)). These $p$-values were created by repeating the analysis on many variables from the same dataset. Thus, we have a multiple testing problem to deal with. Each $p$-value corresponds to a gene and tests whether that gene is associated with a phenotype. 
+
+```{r}
+# Load the dataset
+GWAS_results <- suppressMessages(read_csv("data/GWAS_results.csv")) %>%
+  select(gene = public_gene_name, pval = `p-value`)
+head(GWAS_results)
+```
+
+Using in a sample of 480 mutant C. elegans (nematode worms), the question in the analysis was: **are there any genes, which when mutated, associated with a phenotype defined as a decrease in the ability to uptake a fluorescent dye into their sensory neurons?** This would indicate there might be a problem with their sensory neurons and that this gene might be important for sensory neuron development or function. The study can be accessed [**here**](http://dx.doi.org/10.1371/journal.pgen.1006235).
+
+## Q2.1. Initial Data Insights
+
+rubric={accuracy:2,reasoning:2}
+
+Answer the following questions
+
+- How many genes are present in the total dataset? For this dataset, this corresponds to the number of multiple comparisons that were performed. **Answer in one sentence.**
+- How many genes are associated with the phenotype (a decrease in the ability to uptake a fluorescent dye into their sensory neurons) at the unadjusted $\alpha = 0.05$? **Answer in one sentence.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+**Provide the necessary code to support both answers.**
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## Q2.2. Multiple Testing Issues
+
+rubric={reasoning:2}
+
+Briefly describe (**in one or two sentences**) why it would be misleading to report only one of the "significant" tests (and ignoring the fact that others were done too).
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q2.3. Using `p.adjust()`
+
+rubric={accuracy:1,reasoning:1}
+
+Use the function `p.adjust()` to calculate adjusted $p$-values via the Bonferroni correction. How many and which genes are associated with the treatment after the adjustment, at the $\alpha = 0.05$ significance level? **Answer in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+**Provide the necessary code to support your answer.**
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+## Q2.4. Errors in Hypothesis Testing
+
+rubric={reasoning:3}
+
+In a hypothesis test, we limit the Type I error to be no larger than a pre-specified probability, usually $\alpha = 0.05$. 
+
+What **probability** does the Bonferroni correction limit? Use the following table to give a concrete definition (the _E_'s and _S_'s are counts of hypothesis testings):
+
+|                       | **Null is true**|**Alternative is true**|
+|:-----------------------:|:-----------------:|:---------------------:|
+| **Null rejected**     | $E_1$ | $S_1$     |
+| **Null not rejected** | $S_2$ | $E_2$     |
+
+**Answer in one or two sentences.**
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 3: Multiple Comparisons in the Literature
+
+The manuscript ["Taste for Competition and the Gender Gap Among Young Business Professionals"](http://www.nber.org/papers/w21695) (Reuben et al., 2019) analyzes data and made multiple comparisons. The $p$-values can be found in `competition_results`.
+
+```{r}
+competition_results <- suppressMessages(read_csv("data/competition_results.csv"))
+head(competition_results)
+```
+
+## Q3.1. Study Summary
+
+rubric={reasoning:4}
+
+Write a 3-4 sentence summary of the analysis/study. 
+
+> **Hint:** You do **NOT** have to read the entire paper to get this info! For example, you could:
+>
+> 1. Read the abstract.
+> 2. Skim the introduction.
+> 3. Skim the results.
+> 4. Skim the conclusions.
+
+> **Note:** LLMs (such as ChatGPT) can be a valuable tool when used responsibly. Nonetheless, to develop a robust reasoning for future statistical practice both within and outside MDS, LLMs **are not permitted** to answer this question.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+## Q3.2. Comparing Unadjusted and Adjusted $p$-values
+
+rubric={accuracy:4}
+
+Using the table from **Q2.4**, the False Discovery Rate (FDR) is defined as 
+
+$$\frac{E_1}{E_1 + S_1}.$$
+
+Limiting the FDR to some pre-specified proportion, such as $\delta = 0.05$, controls the proportion of errors among the rejected hypothesis. One FDR-based method is the Benjamini–Hochberg (BH) procedure. Hence, as discussed in class, use this method in addition to the Bonferroni correction.
+
+Take the unadjusted $p$-values from this analysis (stored in `competition_results`) and perform these two methods to adjust them for multiple comparisons: Bonferroni and FDR corrections.
+
+Then, in a summary table called `table_competition`, count how many tests were statistically significant using the unadjusted $p$-values, the adjusted $p$-values from the Bonferroni correction, and the adjusted $p$-values from the FDR. **Use a significance level of 0.05.**
+
+```{r tags=c()}
+table_competition <- NULL
+
+# YOUR CODE HERE
+
+table_competition
+```
+
+## (Challenging) Q3.3. Communicating your Analysis
+
+rubric={reasoning:4}
+
+**In no more than 250 words:**
+
+- Identify and explain the statistical test(s) used in the part of the analysis where multiple comparisons were made.
+- Describe how the authors attempted to control multiple testing issues (or state if they did not make such correction).
+- Reflect on how they controlled for multiple testing issues and how the correction choice may have influenced their interpretations of their results (i.e., when we use a different correction method to adjust the $p$-values, did we get equivalent or very different results?)
+- If the analysis did not control multiple comparisons, write a recommendation on what should have been done.
+
+> **Note:** LLMs (such as ChatGPT) can be a valuable tool when used responsibly. Nonetheless, to develop a robust reasoning for future statistical practice both within and outside MDS, LLMs **are not permitted** to answer this question.
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+\newpage
+
+# Exercise 4: Analysis of an A/B Testing Paper
+
+In this exercise, we will work with the paper ["**Improving Library User Experience with A/B Testing: Principles and Process**"](https://quod.lib.umich.edu/w/weave/12535642.0001.101?view=text;rgn=main) by Young (2014). This paper presents a case study where A/B testing is applied with different webpage designs. The primary aim is to compare user interactions to determine which one statistically improves the navigation experience by increasing the homepage click-through rate. The experiment was conducted using the web analytics software Google Analytics and Crazy Egg.
+
+The setup was done on the **Interact** category in the Montana State University's library webpage (more information can be found in the section *Step 1* in the paper). The experimental treatments (as explained and shown in *Step 4* in the paper) are the following: *Interact* (the control treatment), *Connect*, *Learn*, *Help*, and *Services*. The response variable is what we call the click-through rate, i.e., the ratio of users that click on a specific link to the total number of users who view the page (a proportion that goes from 0 to 1).
+
+Firstly, we load the Crazy Egg data from the web.
+
+```{r warning=FALSE, message=FALSE}
+# Downloading data to a temporary location.
+download.file(
+  "https://scholarworks.montana.edu/bitstreams/de0a1f89-9c24-4bfe-be4b-289ceb5d7dde/download",
+  temp <- tempfile()
+)
+
+# Unzipping to a temporary location.
+unzip(zipfile = temp, exdir = temp2 <- tempfile())
+
+# Getting the file names of the .csv's and put in a data frame.
+crazy_egg <- data.frame(filename = list.files(
+  path = temp2, pattern = "*.csv",
+  full.names = TRUE,
+  recursive = TRUE
+))
+
+# Using map to apply read_csv to each filename to read in data.
+crazy_egg$raw <- map(as.character(crazy_egg$filename), read_csv)
+
+# Getting rid of temporary files.
+unlink(c(temp, temp2))
+
+glimpse(crazy_egg)
+```
+
+Then, we wrangle data to get the raw data into a tidy data format. This includes making a column that labels which webpage variant (i.e., experimental treatment) it was, as well as unnesting the dataframe so we have a row per observation.
+
+```{r warning=FALSE, message=FALSE}
+# Creating webpage ID column from filenames.
+crazy_egg$webpage <- str_extract(
+  string = crazy_egg$filename,
+  pattern = "(?<=- )\\w+"
+)
+
+# Unnesting data frames to make one big dataframe.
+crazy_egg <- unnest(crazy_egg)
+
+# Making Column names more readable.
+colnames(crazy_egg) <- make.names(colnames(crazy_egg))
+
+glimpse(crazy_egg)
+```
+
+Next we make a smaller dataframe that contains just the data we need for calculating click-through rate, which includes:
+
+- Adjusted clicks on homepage (total clicks minus Montana State University - Home clicks).
+- Clicks on button target (e.g., Interact, Connect, Learn, Help, Services button).
+
+```{r warning=FALSE, message=FALSE}
+# Extracting visits.
+click_through <- filter(crazy_egg, grepl("created", Snapshot.information)) %>%
+  select(webpage, Snapshot.information)
+
+colnames(click_through) <- c("webpage", "clicks")
+
+click_through$clicks <- str_extract(
+  string = click_through$clicks,
+  pattern = "\\d+(?= clicks)"
+) %>%
+  as.numeric()
+
+# Extracting homepage clicks.
+click_through$home_page_clicks <- filter(crazy_egg, grepl("Home", Name)) %>%
+  select(No..clicks) %>%
+  unlist()
+
+# Homepage adjusted clicks.
+click_through <- mutate(click_through, adjusted_clicks = clicks - home_page_clicks)
+
+# Target clicks (e.g., Interact, Connect, Learn, Help, Services button).
+click_through$target_clicks <- filter(crazy_egg, grepl(paste(toupper(click_through$webpage),
+  collapse = "|"
+), Name)) %>%
+  select(No..clicks) %>%
+  unlist()
+
+head(click_through)
+```
+
+The `adjusted_clicks` are the **total clicks** we will use to compute the click-through rate by treatment, where `target_clicks` are what we could define as "successes".
+
+## Q4.1. Exploratory Data Analysis
+
+rubric={accuracy:3,viz:3,reasoning:3}
+
+Create a clear and effective visualization of the data, in the form of point estimates, and include confidence intervals (you can use `binom.confint()` from the package `binom`). Firstly, you will have to compute the corresponding click-through rates (call it `click_rate`). Re-order the experimental treatments (i.e., factor levels) in descending order by click-through rate.
+
+```{r fig.width=9, fig.height=7, tags=c()}
+# YOUR CODE HERE
+```
+
+What can we conclude from this plot? **In three or four sentences**, point out any interesting finding coming from the confidence intervals.
+
+**ANSWER**
+
+_Type your answer here, replacing this text._
+
+## Q4.2. Pairwise Comparisons
+
+rubric={accuracy:2,reasoning:2}
+
+Perform **pairwise** frequentist hypothesis test analyses to assess whether there are statistically significant differences between all the experimental treatments (use $\alpha = 0.05$). **Do not forget to control for multiple comparisons** (you can use either one of the methods seen throughout this lab). Ensure you are assuming a reasonable distribution for the data when choosing the statistical analysis for your hypothesis test.
+
+Does your analysis agree or disagree with the insight from your plot?
+
+**ANSWER:**
+
+_Type your answer here, replacing this text._
+
+```{r tags=c()}
+# YOUR CODE HERE
+```
+
+\newpage
+
+# Submission
+
+Congratulations! You are done the lab. Do not forget to:
+
+- Knit the assignment to generate the `.pdf` file and push everything to your Github repo.
+- Double check all the figures, texts, equations are rendered properly in the `.pdf` file
+- **Submit the `.pdf` file to Gradescope.**
+
+# References
+
+- Bickel, P., Hammel, E., and O'Connell, J. (1975). Sex Bias in Graduate Admissions: Data from Berkeley. Science, 187(4175), 398-404. Retrieved February 17, 2021, from http://www.jstor.org/stable/1739581-
+
+- Reuben, E., Sapienza, P., and Zingales, L. (2019). Taste for Competition and the Gender Gap among Young Business Professionals, Working Papers 20190031, New York University Abu Dhabi, Department of Social Science, revised Nov 2019.
+
+- Timbers, T., Garland S., Mohan S., Flibotte S., Edgley M, et al. (2016). Accelerating Gene Discovery by Phenotyping Whole-Genome Sequenced Multi-mutation Strains and Using the Sequence Kernel Association Test (SKAT). PLOS Genetics 12(8): e1006235. https://doi.org/10.1371/journal.pgen.1006235
+
+- Young, S. (2014). Improving Library User Experience with A/B Testing: Principles and Process. Weave: Journal of Library User Experience. 1. 10.3998/weave.12535642.0001.101.
